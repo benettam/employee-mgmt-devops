@@ -1,0 +1,37 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Login to ACR
+      uses: azure/docker-login@v1
+      with:
+        login-server: myacrbenetta1086.azurecr.io
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build -t myacrbenetta1086.azurecr.io/employee-app:${{ github.sha }} .
+        docker push myacrbenetta1086.azurecr.io/employee-app:${{ github.sha }}
+
+    - name: Set AKS Context
+      uses: azure/aks-set-context@v3
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        cluster-name: benetta-aks
+        resource-group: benetta-rg
+
+    - name: Deploy to AKS
+      run: |
+        sed -i 's|myacrbenetta1086.azurecr.io/employee-app:v1|myacrbenetta1086.azurecr.io/employee-app:${{ github.sha }}|g' ansible/deployment.yaml
+        kubectl apply -f ansible/deployment.yaml
+        kubectl apply -f ansible/service.yaml
