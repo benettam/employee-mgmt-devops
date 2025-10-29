@@ -1,0 +1,12 @@
+---
+- hosts: localhost
+  tasks:
+    - name: Deploy employee app to Kubernetes
+      command: kubectl apply -f deployment.yaml
+      args:
+        chdir: "{{ playbook_dir }}"
+
+    - name: Expose employee app service
+      command: kubectl apply -f service.yaml
+      args:
+        chdir: "{{ playbook_dir }}"
